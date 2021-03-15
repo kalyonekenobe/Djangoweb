@@ -8,9 +8,11 @@ class Post(models.Model):
     text = models.TextField()
     created_date = models.DateTimeField(default=timezone.now)
     published_date = models.DateTimeField(blank=True, null=True)
+    is_draft = models.BooleanField(default=True)
 
     def publish(self):
         self.published_date = timezone.now()
+        self.is_draft = False
         self.save()
 
     def __str__(self):

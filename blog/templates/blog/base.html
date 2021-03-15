@@ -15,6 +15,9 @@
             <a href="{% url 'create_post' %}" class="top-menu"><span class="glyphicon glyphicon-plus"></span></a>
         {% endif %}
         <h1><a href="/">Djangoweb</a></h1>
+        {% if user.is_authenticated %}
+            <a href="{% url 'post_draft_list' user_id=user.pk %}" class="btn btn-primary">Check my draft list</a>
+        {% endif %}
     </div>
     <div class="content container">
         <div class="row">
