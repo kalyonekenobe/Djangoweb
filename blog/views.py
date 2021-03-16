@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .forms import PostForm
-from .models import Post
+from .forms import PostForm, CommentForm
+from .models import Post, Comment
 
 
 def post_list(request):
@@ -16,12 +16,14 @@ def post_detail(request, pk):
     return render(request, 'blog/post_detail.html', {'post': post})
 
 
+@login_required
 def post_draft_list(request, user_id):
     author = get_object_or_404(User, pk=user_id)
     posts = Post.objects.filter(created_date__lte=timezone.now(), author=author, is_draft=True).order_by("-created_date")
     return render(request, 'blog/post_draft_list.html', {'posts': posts})
 
 
+@login_required
 def publish_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
     post.is_draft = False
@@ -30,8 +32,9 @@ def publish_post(request, pk):
     return redirect('post_draft_list', request.user.pk)
 
 
+@login_required
 def remove_post(request, pk):
-    post = Post.objects.get(pk=pk)
+    post = get_object_or_404(Post, pk=pk)
     is_draft = post.is_draft
     post.delete()
     if is_draft:
@@ -40,6 +43,7 @@ def remove_post(request, pk):
         return redirect('post_list')
 
 
+@login_required
 def create_post(request):
     if request.method == 'POST':
         form = PostForm(request.POST)
@@ -55,6 +59,7 @@ def create_post(request):
     return render(request, 'blog/edit_post.html', {'form': form})
 
 
+@login_required
 def edit_post(request, pk):
     post = get_object_or_404(Post, pk=pk)
     if request.method == 'POST':
@@ -69,3 +74,32 @@ def edit_post(request, pk):
     else:
         form = PostForm(instance=post)
     return render(request, 'blog/edit_post.html', {'form': form})
+
+
+def create_comment(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.created_date = timezone.now()
+            comment.save()
+            return redirect('post_detail', pk=post.pk)
+    else:
+        form = CommentForm()
+    return render(request, 'blog/create_comment.html', {'form': form})
+
+
+@login_required
+def approve_comment(request, pk):
+    comment = get_object_or_404(Comment, pk=pk)
+    comment.approve()
+    return redirect('post_detail', pk=comment.post.pk)
+
+
+@login_required
+def remove_comment(request, pk):
+    comment = get_object_or_404(Comment, pk=pk)
+    comment.delete()
+    return redirect('post_detail', pk=comment.post.pk)
